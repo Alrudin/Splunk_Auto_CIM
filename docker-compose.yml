@@ -1,0 +1,31 @@
+services:
+  splunk:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: splunk/Dockerfile
+    container_name: splunk
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=abcd1234
+    ports:
+      - "8000:8000"
+      - "8089:8089"
+    volumes:
+      - ./apps:/opt/splunk/etc/apps/generated_tas
+
+  ai-orchestrator:
+    build:
+      context: ./ai-orchestrator
+    container_name: ai-orchestrator
+    environment:
+      - SPLUNK_HOST=splunk
+      - SPLUNK_PORT=8089
+      - SPLUNK_USER=admin
+      - SPLUNK_PASSWORD=abcd1234
+    volumes:
+      - ./ai-orchestrator:/app
+    depends_on:
+      - splunk
+    command: tail -f /dev/null

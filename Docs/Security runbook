@@ -1,0 +1,40 @@
+# Security Runbook: Threat Modeling & RBAC for AI-Driven CIM Normalizer
+
+## 1. Scope
+This runbook defines the security boundaries, threat mitigations, and Role-Based Access Control (RBAC) requirements for deploying an LLM-agent connected to Splunk via the Model Context Protocol (MCP).
+
+## 2. Threat Model (Key Risks & Mitigations)
+
+| Threat | Description | Mitigation Strategy |
+| :--- | :--- | :--- |
+| **Malicious SPL Execution** | Agent is manipulated via prompt injection to run destructive commands (e.g., `| delete`). | Enforce strict Splunk RBAC limiting the MCP service account to search-only capabilities. |
+| **Denial of Service (DoS)** | Agent writes inefficient, "catastrophic backtracking" regex in `transforms.conf` causing Search Head crashes. | Mandatory `splunk-appinspect` validation in GitLab CI/CD. Reject configurations failing performance checks. |
+| **Data Exfiltration** | Agent extracts sensitive raw logs and transmits them to an unauthorized external endpoint. | Network egress filtering on the MCP Server. Use enterprise-tier LLM APIs (zero data retention policies). |
+| **Unauthorized Config Changes** | Agent directly modifies Splunk configurations in production. | **Immutable Rule:** Agent has *zero* write access to Splunk APIs. All changes route exclusively through GitOps Merge Requests. |
+
+## 3. Splunk RBAC Configuration (Least Privilege)
+The MCP Server must authenticate to Splunk using a dedicated service account assigned to a custom role: `role_mcp_agent`.
+
+### 3.1 Allowed Capabilities
+The service account requires only the absolute minimum to read data and schemas:
+* `search`
+* `rest_properties_get` (Required to read `/services/datamodel/model/*`)
+
+### 3.2 Strictly Denied Capabilities
+Ensure the following are explicitly absent from `role_mcp_agent`:
+* `admin_all_objects`
+* `delete_by_keyword`
+* `edit_tcp` / `edit_udp` (Must not create data inputs)
+* `output_file` / `run_script`
+
+### 3.3 SPL Command Restrictions
+To prevent data manipulation, ensure the role is restricted from utilizing state-altering commands:
+* `collect`
+* `delete`
+* `outputlookup`
+* `sendemail`
+
+## 4. CI/CD Security Guardrails
+The GitLab pipeline acts as the final security gate. The deployment pipeline must enforce:
+1. **AppInspect Validation:** Run `splunk-appinspect inspect ./TA-generated --mode precert`. The build must fail if there are *any* errors regarding regex complexity or invalid `.conf` stanzas.
+2. **Mandatory Human Review:** Require at least one approval from a Senior Security Engineer before the Merge Request can deploy to the Splunk Search Heads.

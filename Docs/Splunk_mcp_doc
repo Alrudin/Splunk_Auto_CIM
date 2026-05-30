@@ -1,0 +1,83 @@
+Splunk MCP Server
+MCP Server for Splunk Platform The Model Context Protocol (MCP) server provides a standardized, secure, and scalable interface for connecting AI assistants, agents, and other intelligent systems with data in the Splunk platform.
+
+Review the Splunk MCP server documentation to learn more.
+
+Create encrypted token
+Create encrypted tokens for your MCP client. Tokens can be time-bound and revoked as needed.
+
+Info
+You will need to first create a Splunk MCP Encrypted Token before you can start Splunk MCP Server with MCP clients.
+Tokens use the audience "mcp". Use Manage tokens below to view them.
+
+
+Create MCP Encrypted Token
+
+Manage tokens
+Server Status
+Success
+Server is active
+Endpoints
+https://localhost:8089/services/mcp
+
+Copy
+http://localhost:8000/en-US/splunkd/__raw/services/mcp
+
+Copy
+MCP Configuration
+Copy the MCP configuration for your client. You must replace the placeholder with your token and optionally make adjustments for your specific MCP client and OS.
+
+JSON config
+{ [-] Collapse all
+    mcpServers: { [-] Collapse all
+        splunk-mcp-server: { [-] Collapse all
+            command: "npx",
+            args: [ [-] Collapse all
+                "-y",
+                "mcp-remote",
+                "https://localhost:8089/services/mcp",
+                "--header",
+                "Authorization: Bearer <Your Token>"
+            ]
+        }
+    }
+}
+
+Copy
+Rotate encrypted tokens
+Rotate the encryption keys to invalidate existing encrypted tokens and require fresh ones for connected clients.
+
+
+Refresh Keys / Invalidate Existing Tokens
+Guardrails
+Server limits and rate controls for MCP tool execution.
+
+Setting
+Description
+Value
+Timeout
+
+Max seconds before a tool call times out (Splunk AI Assistant tools use their own timeout setting)
+
+60 s
+
+Splunk AI Assistant timeout
+
+Max seconds before a Splunk AI Assistant tool call times out
+
+200 s
+
+Default row limit
+
+Rows returned when the caller does not specify a limit
+
+100 rows
+
+Global rate limit
+
+Max tool calls per 60-second fixed window across all tools (resets at window boundary)
+
+600 req/min
+
+
+Edit

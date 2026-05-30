@@ -1,0 +1,6 @@
+{
+  "venvPath": ".",
+  "venv": ".myvenv",
+  "pythonVersion": "3.13",
+  "extraPaths": ["ai-orchestrator"]
+}
