@@ -17,10 +17,11 @@ def discovery(all_time):
     run_discovery(all_time)
 
 @cli.command()
-def context():
+@click.option('--prompt', is_flag=True, help="Prompt user for confirmation of the target Data Model")
+def context(prompt):
     """Phase 2: Fetch priority sourcetype, fetch events, and classify Data Model."""
-    click.echo("Running Context Gathering Phase...")
-    gather_context()
+    click.echo(f"Running Context Gathering Phase... (prompt={prompt})")
+    gather_context(prompt_user=prompt)
 
 @cli.command()
 def generate():
