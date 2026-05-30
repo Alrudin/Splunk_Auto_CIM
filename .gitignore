@@ -1,2 +1,4 @@
 .myenv/
 .env
+resources/*
+.DS_Store
