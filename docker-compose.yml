@@ -14,6 +14,7 @@ services:
       - "8089:8089"
     volumes:
       - ./apps:/opt/splunk/etc/apps/generated_tas
+      - ./apps/Splunk_Auto_CIM_State:/opt/splunk/etc/apps/Splunk_Auto_CIM_State
 
   ai-orchestrator:
     build:

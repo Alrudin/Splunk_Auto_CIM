@@ -2,3 +2,4 @@
 .env
 resources/*
 .DS_Store
+ai-orchestrator/__pycache__/*

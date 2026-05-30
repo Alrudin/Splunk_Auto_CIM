@@ -10,10 +10,11 @@ def cli():
     pass
 
 @cli.command()
-def discovery():
+@click.option('--all_time', is_flag=True, help="Search over all time (earliest_time=0)")
+def discovery(all_time):
     """Phase 1: Run differential searches and populate the Remediation Queue."""
-    click.echo("Running Discovery Phase...")
-    run_discovery()
+    click.echo(f"Running Discovery Phase... (all_time={all_time})")
+    run_discovery(all_time)
 
 @cli.command()
 def context():
