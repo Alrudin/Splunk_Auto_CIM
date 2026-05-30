@@ -87,7 +87,8 @@ Reply ONLY with the exact name of the CIM Data Model (e.g., "Network Traffic" or
         response = litellm.completion(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            api_base=OLLAMA_BASE_URL
+            api_base=OLLAMA_BASE_URL,
+            timeout=60.0
         )
         suggested_dm = response.choices[0].message.content.strip()
         print(f"\nLLM Suggested Data Model: {suggested_dm}")
@@ -108,10 +109,14 @@ Reply ONLY with the exact name of the CIM Data Model (e.g., "Network Traffic" or
     target_item['target_dm'] = target_dm
     target_item['status'] = 'in_progress'
     
+    payload = target_item.copy()
+    payload.pop('_key', None)
+    payload.pop('_user', None)
+    
     async with httpx.AsyncClient(verify=False) as client:
         resp = await client.post(
             update_url,
-            json=target_item,
+            json=payload,
             auth=auth,
             headers={"Content-Type": "application/json"}
         )

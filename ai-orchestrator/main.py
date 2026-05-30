@@ -27,9 +27,8 @@ def context(prompt):
 def generate():
     """Phase 3: Map fields and generate Splunk configurations."""
     click.echo("Running Generation Phase...")
-    # Normally we would pass target_dm from the context step, here we'll assume it's known or stored
-    # For MVP skeleton, we just pass a placeholder
-    generate_configurations("Placeholder_DM")
+    # We fetch the target Data Model and sourcetype directly from KV store in this phase
+    generate_configurations()
 
 if __name__ == "__main__":
     cli()

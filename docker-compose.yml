@@ -27,6 +27,7 @@ services:
       - SPLUNK_PASSWORD=abcd1234
     volumes:
       - ./ai-orchestrator:/app
+      - ./apps:/app/apps
     depends_on:
       - splunk
     command: tail -f /dev/null
