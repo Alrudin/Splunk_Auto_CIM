@@ -28,6 +28,6 @@ services:
     volumes:
       - ./ai-orchestrator:/app
       - ./apps:/app/apps
-    depends_on:
-      - splunk
+    # depends_on:
+    #   - splunk
     command: tail -f /dev/null
