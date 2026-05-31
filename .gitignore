@@ -3,3 +3,5 @@
 resources/*
 .DS_Store
 ai-orchestrator/__pycache__/*
+apps/*.tgz
+apps/*

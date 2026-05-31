@@ -150,7 +150,7 @@ Output ONLY valid JSON matching this schema:
     with open(tags_conf_path, "w") as f:
         f.write(f"[eventtype={sourcetype}]\n")
         for tag in output_data.tags.tags:
-            f.write(f"tag::{tag} = enabled\n")
+            f.write(f"{tag} = enabled\n")
             
     print(f"Written: {tags_conf_path}")
     
