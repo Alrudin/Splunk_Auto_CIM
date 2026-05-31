@@ -158,7 +158,7 @@ Output ONLY valid JSON matching this schema:
     # Render tags.conf
     with open(tags_conf_path, "a") as f:
         f.write(f"\n[eventtype={eventtype_name}]\n")
-        for tag in output_data.tags.tags:
+        for tag in output_data.tags:
             f.write(f"{tag} = enabled\n")
             
     print(f"Written: {tags_conf_path}")
