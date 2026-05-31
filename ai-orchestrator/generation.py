@@ -47,9 +47,10 @@ async def _generate_configurations():
 
     sourcetype = target_item['sourcetype']
     target_dm = target_item.get('target_dm', 'Unknown')
+    source = target_item.get('source', '*')
 
-    print(f"Fetching sample raw events for {sourcetype} via REST API...")
-    search_query = f'search index=* sourcetype="{sourcetype}" | head 3'
+    print(f"Fetching sample raw events for sourcetype={sourcetype} and source={source} via REST API...")
+    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 3'
     data = {"search": search_query, "output_mode": "json", "earliest_time": "0"}
     search_url = f"{SPLUNK_REST_BASE}/services/search/jobs/export"
     
@@ -67,7 +68,7 @@ async def _generate_configurations():
                         pass
 
     if not raw_events:
-        print(f"No sample events found for sourcetype: {sourcetype}")
+        print(f"No sample events found for sourcetype: {sourcetype} and source: {source}")
         return
 
     print(f"Found {len(raw_events)} sample events. Calling LLM for generation...")
@@ -76,7 +77,7 @@ async def _generate_configurations():
     schema = GenerationOutput.model_json_schema()
     
     prompt = f"""
-You are a Splunk expert. Analyze the following raw events for the sourcetype '{sourcetype}'.
+You are a Splunk expert. Analyze the following raw events for the sourcetype '{sourcetype}' and source '{source}'.
 The target CIM Data Model is '{target_dm}'.
 Generate the necessary field extractions (regex), eval expressions, and field aliases to map these events to the '{target_dm}' Data Model.
 Also provide the necessary tags.
@@ -118,6 +119,11 @@ Output ONLY valid JSON matching this schema:
 
     print("Successfully parsed GenerationOutput. Rendering .conf files...")
     
+    import re
+    stanza_name = f"[{sourcetype}]" if source == '*' else f"[source::{source}]"
+    clean_source = re.sub(r'[^a-zA-Z0-9]', '_', source)
+    eventtype_name = f"{sourcetype}_{clean_source}".strip('_')
+
     ta_dir = f"/app/apps/TA-{sourcetype.replace(':', '_')}/default"
     os.makedirs(ta_dir, exist_ok=True)
     
@@ -126,8 +132,8 @@ Output ONLY valid JSON matching this schema:
     eventtypes_conf_path = os.path.join(ta_dir, "eventtypes.conf")
     
     # Render props.conf
-    with open(props_conf_path, "w") as f:
-        f.write(f"[{sourcetype}]\n")
+    with open(props_conf_path, "a") as f:
+        f.write(f"\n{stanza_name}\n")
         
         for ext in output_data.props.extractions:
             f.write(f"EXTRACT-{ext.name} = {ext.regex}\n")
@@ -141,14 +147,17 @@ Output ONLY valid JSON matching this schema:
     print(f"Written: {props_conf_path}")
             
     # Render eventtypes.conf
-    with open(eventtypes_conf_path, "w") as f:
-        f.write(f"[{sourcetype}]\n")
-        f.write(f"search = sourcetype={sourcetype}\n")
+    with open(eventtypes_conf_path, "a") as f:
+        f.write(f"\n[{eventtype_name}]\n")
+        if source == '*':
+            f.write(f"search = sourcetype={sourcetype}\n")
+        else:
+            f.write(f"search = sourcetype={sourcetype} source=\"{source}\"\n")
     print(f"Written: {eventtypes_conf_path}")
 
     # Render tags.conf
-    with open(tags_conf_path, "w") as f:
-        f.write(f"[eventtype={sourcetype}]\n")
+    with open(tags_conf_path, "a") as f:
+        f.write(f"\n[eventtype={eventtype_name}]\n")
         for tag in output_data.tags.tags:
             f.write(f"{tag} = enabled\n")
             

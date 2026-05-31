@@ -44,8 +44,9 @@ async def _gather_context(prompt_user=False):
             return None
 
     sourcetype = target_item['sourcetype']
-    print(f"Fetching sample raw events for {sourcetype} via REST API...")
-    search_query = f'search index=* sourcetype="{sourcetype}" | head 5'
+    source = target_item.get('source', '*')
+    print(f"Fetching sample raw events for sourcetype={sourcetype} and source={source} via REST API...")
+    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 5'
     data = {"search": search_query, "output_mode": "json", "earliest_time": "0"}
     search_url = f"{SPLUNK_REST_BASE}/services/search/jobs/export"
     
@@ -65,7 +66,7 @@ async def _gather_context(prompt_user=False):
             print(f"Failed to fetch sample events: {resp.status_code} - {resp.text}")
 
     if not raw_events:
-        print(f"No sample events found for sourcetype: {sourcetype}")
+        print(f"No sample events found for sourcetype: {sourcetype} and source: {source}")
         return None
 
     print(f"Found {len(raw_events)} sample events.")
@@ -73,7 +74,7 @@ async def _gather_context(prompt_user=False):
     
     events_text = "\n".join(raw_events)
     prompt = f"""
-Analyze the following Splunk raw events for the sourcetype '{sourcetype}'.
+Analyze the following Splunk raw events for the sourcetype '{sourcetype}' and source '{source}'.
 Determine the most appropriate Splunk Common Information Model (CIM) Data Model for these events.
 Common Data Models include: Authentication, Network Traffic, Intrusion Detection, Web, Endpoint, etc.
 
