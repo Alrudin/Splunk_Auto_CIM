@@ -88,7 +88,7 @@ Raw Events:
 Output ONLY valid JSON matching this schema:
 {json.dumps(schema, indent=2)}
 """
-    print(prompt)
+    
     content = None
     try:
         response = litellm.completion(

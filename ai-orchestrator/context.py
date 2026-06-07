@@ -84,7 +84,6 @@ Raw Events:
 Reply ONLY with the exact name of the CIM Data Model (e.g., "Network Traffic" or "Authentication").
 """
     
-    print(prompt)
 
     try:
         response = litellm.completion(
