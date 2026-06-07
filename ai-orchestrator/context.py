@@ -8,8 +8,10 @@ from config import (
     SPLUNK_USER,
     SPLUNK_PASSWORD,
     OLLAMA_BASE_URL,
-    LLM_MODEL
+    LLM_MODEL,
+    LLM_CONTEXT_LENGTH
 )
+import tiktoken
 
 SPLUNK_REST_BASE = f"https://{SPLUNK_HOST}:{SPLUNK_PORT}"
 
@@ -46,7 +48,7 @@ async def _gather_context(prompt_user=False):
     sourcetype = target_item['sourcetype']
     source = target_item.get('source', '*')
     print(f"Fetching sample raw events for sourcetype={sourcetype} and source={source} via REST API...")
-    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 5'
+    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 20'
     data = {"search": search_query, "output_mode": "json", "earliest_time": "0"}
     search_url = f"{SPLUNK_REST_BASE}/services/search/jobs/export"
     
@@ -69,10 +71,31 @@ async def _gather_context(prompt_user=False):
         print(f"No sample events found for sourcetype: {sourcetype} and source: {source}")
         return None
 
-    print(f"Found {len(raw_events)} sample events.")
+    print(f"Found {len(raw_events)} sample events from Splunk.")
+    
+    # Filter based on token length limit
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    filtered_events = []
+    total_tokens = 0
+    
+    for event in raw_events:
+        tokens = len(tokenizer.encode(event))
+        if total_tokens + tokens > LLM_CONTEXT_LENGTH:
+            print(f"Skipping event: adding {tokens} tokens would exceed limit {LLM_CONTEXT_LENGTH}.")
+            continue
+        filtered_events.append(event)
+        total_tokens += tokens
+        if len(filtered_events) >= 5:
+            break
+
+    if not filtered_events:
+        print("All events were individually larger than the context length limit.")
+        return None
+
+    print(f"Selected {len(filtered_events)} events ({total_tokens} tokens) for context.")
     print("Classifying Data Model using Ollama...")
     
-    events_text = "\n".join(raw_events)
+    events_text = "\n".join(filtered_events)
     prompt = f"""
 Analyze the following Splunk raw events for the sourcetype '{sourcetype}' and source '{source}'.
 Determine the most appropriate Splunk Common Information Model (CIM) Data Model for these events.
@@ -84,6 +107,7 @@ Raw Events:
 Reply ONLY with the exact name of the CIM Data Model (e.g., "Network Traffic" or "Authentication").
 """
     
+
     try:
         response = litellm.completion(
             model=LLM_MODEL,

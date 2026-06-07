@@ -18,3 +18,4 @@ SPLUNK_MCP_TOKEN = os.getenv("SPLUNK_MCP_TOKEN", "")
 # When running inside docker on mac, host.docker.internal routes to the host
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "ollama/llama3")
+LLM_CONTEXT_LENGTH = int(os.getenv("LLM_CONTEXT_LENGTH", 4000))
