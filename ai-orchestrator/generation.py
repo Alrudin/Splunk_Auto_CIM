@@ -10,8 +10,10 @@ from config import (
     SPLUNK_USER,
     SPLUNK_PASSWORD,
     OLLAMA_BASE_URL,
-    LLM_MODEL
+    LLM_MODEL,
+    LLM_CONTEXT_LENGTH
 )
+import tiktoken
 
 SPLUNK_REST_BASE = f"https://{SPLUNK_HOST}:{SPLUNK_PORT}"
 
@@ -50,7 +52,7 @@ async def _generate_configurations():
     source = target_item.get('source', '*')
 
     print(f"Fetching sample raw events for sourcetype={sourcetype} and source={source} via REST API...")
-    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 3'
+    search_query = f'search index=* sourcetype="{sourcetype}" source="{source}" | head 20'
     data = {"search": search_query, "output_mode": "json", "earliest_time": "0"}
     search_url = f"{SPLUNK_REST_BASE}/services/search/jobs/export"
     
@@ -71,9 +73,30 @@ async def _generate_configurations():
         print(f"No sample events found for sourcetype: {sourcetype} and source: {source}")
         return
 
-    print(f"Found {len(raw_events)} sample events. Calling LLM for generation...")
+    print(f"Found {len(raw_events)} sample events from Splunk.")
+    
+    # Filter based on token length limit
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    filtered_events = []
+    total_tokens = 0
+    
+    for event in raw_events:
+        tokens = len(tokenizer.encode(event))
+        if total_tokens + tokens > LLM_CONTEXT_LENGTH:
+            print(f"Skipping event: adding {tokens} tokens would exceed limit {LLM_CONTEXT_LENGTH}.")
+            continue
+        filtered_events.append(event)
+        total_tokens += tokens
+        if len(filtered_events) >= 5:
+            break
 
-    events_text = "\n".join(raw_events)
+    if not filtered_events:
+        print("All events were individually larger than the context length limit.")
+        return
+
+    print(f"Selected {len(filtered_events)} events ({total_tokens} tokens) for LLM generation.")
+
+    events_text = "\n".join(filtered_events)
     schema = GenerationOutput.model_json_schema()
     
     prompt = f"""
