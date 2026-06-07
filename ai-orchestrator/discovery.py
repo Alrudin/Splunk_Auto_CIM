@@ -28,7 +28,7 @@ async def _run_discovery(all_time=False):
     results_to_insert = []
     
     try:
-        search_query = '| tstats count as total_count where index=* by sourcetype | append [| tstats count as tagged_count where index=* tag=* by sourcetype] | stats sum(total_count) as total_count, sum(tagged_count) as tagged_count by sourcetype | fillnull value=0 total_count, tagged_count | eval gap_percentage=round(((total_count - tagged_count) / total_count) * 100, 2) | eval priority_score=if(total_count>0, min(round(log(total_count, 10) * 1.5, 1), 10.0), 0.0) | table sourcetype, gap_percentage, priority_score'
+        search_query = '| tstats count as total_count where index=* by sourcetype, source | append [| tstats count as tagged_count where index=* tag=* by sourcetype, source] | stats sum(total_count) as total_count, sum(tagged_count) as tagged_count by sourcetype, source | fillnull value=0 total_count, tagged_count | eval gap_percentage=round(((total_count - tagged_count) / total_count) * 100, 2) | eval priority_score=if(total_count>0, min(round(log(total_count, 10) * 1.5, 1), 10.0), 0.0) | table sourcetype, source, gap_percentage, priority_score'
         earliest_time = "0" if all_time else "-24h"
         data = {"search": search_query, "output_mode": "json", "earliest_time": earliest_time}
         search_url = f"{SPLUNK_REST_BASE}/services/search/jobs/export"
@@ -47,13 +47,14 @@ async def _run_discovery(all_time=False):
                                 # Convert string numbers to floats/ints
                                 results_to_insert.append({
                                     "sourcetype": res["sourcetype"],
+                                    "source": res.get("source", "unknown"),
                                     "gap_percentage": float(res["gap_percentage"]),
                                     "priority_score": float(res["priority_score"]),
                                     "status": "pending"
                                 })
                         except Exception as parse_e:
                             print(f"Failed to parse line: {parse_e}")
-                print(f"Splunk Search executed successfully. Found {len(results_to_insert)} sourcetypes.")
+                print(f"Splunk Search executed successfully. Found {len(results_to_insert)} unmapped source/sourcetype combinations.")
             else:
                 print(f"Splunk Search failed: HTTP {resp.status_code} - {resp.text}")
                 raise Exception(f"Search API returned {resp.status_code}")
@@ -62,9 +63,9 @@ async def _run_discovery(all_time=False):
         print(f"REST Connection/Tool execution failed: {e}")
         print("Falling back to simulated discovery results for MVP...")
         results_to_insert = [
-            {"sourcetype": "aws:cloudtrail", "gap_percentage": 85.0, "priority_score": 9.0, "status": "pending"},
-            {"sourcetype": "pan:traffic", "gap_percentage": 40.0, "priority_score": 5.0, "status": "pending"},
-            {"sourcetype": "wineventlog:security", "gap_percentage": 60.0, "priority_score": 7.0, "status": "pending"}
+            {"sourcetype": "aws:cloudtrail", "source": "aws:cloudtrail", "gap_percentage": 85.0, "priority_score": 9.0, "status": "pending"},
+            {"sourcetype": "syslog", "source": "/var/log/secure", "gap_percentage": 40.0, "priority_score": 5.0, "status": "pending"},
+            {"sourcetype": "syslog", "source": "/var/log/cron", "gap_percentage": 60.0, "priority_score": 7.0, "status": "pending"}
         ]
     
     print(f"Discovered {len(results_to_insert)} unmapped sourcetypes.")

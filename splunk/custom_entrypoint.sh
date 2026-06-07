@@ -11,5 +11,9 @@ echo "Creating generated_tas directory..."
 mkdir -p /opt/splunk/etc/apps/generated_tas
 chown -R splunk:splunk /opt/splunk/etc/apps/generated_tas
 
+echo "Installing Splunk Common Information Model app..."
+tar -xzf /tmp/splunk-common-information-model-cim_850.tgz -C /opt/splunk/etc/apps/
+chown -R splunk:splunk /opt/splunk/etc/apps/Splunk_Common_Information_Model_CIM
+
 echo "Starting Splunk..."
 exec /sbin/entrypoint.sh "$@"

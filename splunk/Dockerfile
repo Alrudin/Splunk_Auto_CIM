@@ -11,6 +11,8 @@ RUN mkdir -p /tmp/botsv3 && \
 # Copy Splunk MCP Server app
 COPY resources/splunk-mcp-server_120.tgz /tmp/mcp-server.tgz
 
+COPY resources/splunk-common-information-model-cim_850.tgz /tmp/splunk-common-information-model-cim_850.tgz
+
 COPY splunk/custom_entrypoint.sh /custom_entrypoint.sh
 RUN chmod +x /custom_entrypoint.sh
 
